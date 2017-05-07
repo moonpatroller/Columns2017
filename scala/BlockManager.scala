@@ -54,7 +54,8 @@ class BlockManager(val rows: Int, val columns: Int, difficulty: Int) {
      * Scans the entire board for more in a row
      */
     def boardScan(): Unit = {
-        val deletions = scanDown() ++ scanRight() ++ scanRightUp() ++ scanRightDown()
+        val deletions = visitDown(visitor _) ++ visitRight(visitor _) ++ visitRightUp(visitor _) ++ visitRightDown(visitor _)
+
         for (ls <- deletions;
             (r, c) <- ls) {
             board(r)(c) = '-'
@@ -64,56 +65,44 @@ class BlockManager(val rows: Int, val columns: Int, difficulty: Int) {
         reAdjustBoard()
     }
 
-    def scanDown(): IndexedSeq[List[(Int, Int)]] = {
-        (
-            for {
-                col <- 0 until columns
-                row <- (rows - 1) to 2 by -1
-                if (board(row)(col) != '-' && 
-                    board(row)(col) == board(row - 1)(col) &&
-                    board(row - 1)(col) == board(row - 2)(col))
-            }
-            yield List((row, col), (row - 1, col), (row - 2, col))
-        )
+    def visitor(r1: Int, c1: Int, r2: Int, c2: Int, r3: Int, c3: Int): Option[List[(Int, Int)]] = {
+        if (board(r1)(c1) != '-' && board(r1)(c1) == board(r2)(c2) && board(r2)(c2) == board(r3)(c3)) Some(List((r1, c1), (r2, c2), (r3, c3))) else None
     }
 
-    def scanRight(): IndexedSeq[List[(Int, Int)]] = {
-        (
-            for {
-                row <- 0 until rows
-                col <- 0 until (columns - 2)
-                if (board(row)(col) != '-' && 
-                    board(row)(col) == board(row)(col + 1) &&
-                    board(row)(col + 1) == board(row)(col + 2))
-            }
-            yield List((row, col), (row, col + 1), (row, col + 2))
-        )
+    def visitDown(visitor: (Int, Int, Int, Int, Int, Int) => Option[List[(Int, Int)]]): IndexedSeq[List[(Int, Int)]] = {
+        for {
+            col <- 0 until columns
+            row <- (rows - 1) to 2 by -1
+            list <- visitor(row, col, row - 1, col, row - 2, col)
+        }
+        yield list
     }
 
-    def scanRightUp(): IndexedSeq[List[(Int, Int)]] = {
-        (
-            for {
-                row <- 0 until (rows - 2)
-                col <- 0 until (columns - 2)
-                if (board(row)(col) != '-' && 
-                    board(row)(col) == board(row + 1)(col + 1) &&
-                    board(row + 1)(col + 1) == board(row + 2)(col + 2))
-            }
-            yield List((row, col), (row + 1, col + 1), (row + 2, col + 2))
-        )
+    def visitRight(visitor: (Int, Int, Int, Int, Int, Int) => Option[List[(Int, Int)]]): IndexedSeq[List[(Int, Int)]] = {
+        for {
+            row <- 0 until rows
+            col <- 0 until (columns - 2)
+            list <- visitor(row, col, row, col + 1, row, col + 2)
+        }
+        yield list
     }
 
-    def scanRightDown(): IndexedSeq[List[(Int, Int)]] = {
-        (
-            for {
-                row <- 2 until rows
-                col <- 0 until (columns - 2)
-                if (board(row)(col) != '-' && 
-                    board(row)(col) == board(row - 1)(col + 1) &&
-                    board(row - 1)(col + 1) == board(row - 2)(col + 2))
-            }
-            yield List((row, col), (row - 1, col + 1), (row - 2, col + 2))
-        )
+    def visitRightUp(visitor: (Int, Int, Int, Int, Int, Int) => Option[List[(Int, Int)]]): IndexedSeq[List[(Int, Int)]] = {
+        for {
+            row <- 0 until (rows - 2)
+            col <- 0 until (columns - 2)
+            list <- visitor(row, col, row + 1, col + 1, row + 2, col + 2)
+        }
+        yield list
+    }
+
+    def visitRightDown(visitor: (Int, Int, Int, Int, Int, Int) => Option[List[(Int, Int)]]): IndexedSeq[List[(Int, Int)]] = {
+        for {
+            row <- 2 until rows
+            col <- 0 until (columns - 2)
+            list <- visitor(row, col, row - 1, col + 1, row - 2, col + 2)
+        }
+        yield list
     }
 
     /**
